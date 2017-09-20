@@ -26,7 +26,7 @@ url3 = 'http://yz.chsi.com.cn/zsml/kskm.jsp?id=102882110608110405&dwmc=(10288)%E
 
 
 data = {
-    'mldm':'07' # 直接get不使用post可以获取全部。dmmc的list
+    'mldm':'07' # 直接get不使用post可以获取全部。dmmc的list.另外07理学，08工学
 }
 
 host='http://yz.chsi.com.cn'
@@ -125,13 +125,23 @@ def school_to_recruit_examation(school_url):
         major_list.extend(info['major_list'])
     return {'major_list':major_list}
 
-def dmmc_to_major(dmmc,disp=True):
+def dmmc_to_major(dmmc,disp=True,retry_limit=10):
     schools = dmmc_to_school(dmmc)
     major_list = []
     for school_name,school_url in zip(schools['name_list'],schools['url_list']):
         if disp:
             print('Collecting {}'.format(school_name))
-        major_list_part = school_to_recruit_examation(school_url)['major_list']
+        
+        for i in range(retry_limit):
+            try:
+                major_list_part = school_to_recruit_examation(school_url)['major_list']
+                break
+            except ConnectionError:
+                if disp:
+                    print('Connecting fail try {}/{}'.format(i+1,retry_limit))
+        else:
+            raise ConnectionAbortedError
+        
         for major in major_list_part:
             major['school'] = school_name
         major_list.extend(major_list_part)
